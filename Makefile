@@ -5,5 +5,5 @@ build: clean
 	gcc -o bin/main src/main.c src/memalloc.c
 
 clean:
-	rm -f bin/main
+	rm -rf bin/
 	mkdir bin/
