@@ -92,8 +92,8 @@ void memfree(void* ptr) {
 }
 
 void memdump() {
-	const char* col_used = "\033[107m";
-	const char* col_free = "\033[40m";
+	const char* col_used = "\033[40m";
+	const char* col_free = "\033[107m";
 	const char* col_reset = "\033[0m";
 
 	printf("---memalloc dump---\n");
