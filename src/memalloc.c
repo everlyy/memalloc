@@ -5,6 +5,7 @@
 
 #define MAP_TYPE uint32_t
 #define MAP_TYPE_SIZE (sizeof(MAP_TYPE) * 8)
+#define AREA_INFO_SIZE sizeof(size_t)
 
 #define MEM_SIZE 8192
 #define CHUNK_SIZE 16
@@ -17,7 +18,6 @@
 
 uint8_t memory[MEM_SIZE];
 MAP_TYPE memmap[MAP_SIZE];
-size_t sizemap[CHUNK_COUNT];
 
 size_t alloc_call_count = 0;
 size_t free_call_count = 0;
@@ -74,6 +74,9 @@ void* memalloc(size_t size) {
 	if(size < 1)
 		return NULL;
 
+	// Add sizeof(size_t) so we can store the amount of chunks as the first 4 bytes
+	size += sizeof(size_t);
+
 	size_t chunks = 0;
 	int fit = find_fit(size, &chunks);
 	if(fit < 0)
@@ -81,25 +84,40 @@ void* memalloc(size_t size) {
 
 	set_size_in_map(fit, chunks, 1);
 
-	sizemap[fit] = chunks;
+	void* allocated_area = (void*)((uintptr_t)memory + (uintptr_t)fit);
+
+	// Store the amount of chunks allocated in the allocated area
+	*((size_t*)allocated_area) = chunks;
+
 	total_used_chunks += chunks;
-	return (void*)((uintptr_t)memory + (uintptr_t)fit);
+	return (void*)((uintptr_t)allocated_area + (uintptr_t)AREA_INFO_SIZE);
 }
 
 void memfree(void* ptr) {
 	free_call_count++;
-	size_t idx = (int)((uintptr_t)ptr - (uintptr_t)memory);
+
+	size_t idx = (size_t)((uintptr_t)ptr - (uintptr_t)memory - (uintptr_t)AREA_INFO_SIZE);
+	size_t chunk_count = (size_t)memory[idx];
+
 	if(idx < 0 || idx > CHUNK_COUNT)
 		return;
-	total_free_chunks += sizemap[idx];
-	set_size_in_map(idx, sizemap[idx], 0);
+	total_free_chunks += chunk_count;
+	set_size_in_map(idx, chunk_count, 0);
+}
+
+/* just don't look at the next functions these just look so terrible */
+void memarea_info(void* ptr) {
+	size_t idx = (size_t)((uintptr_t)ptr - (uintptr_t)memory - (uintptr_t)AREA_INFO_SIZE);
+	size_t chunk_count = (size_t)memory[idx];
+
+	printf(COL_USED"        "COL_FREE);
+	printf("                         "COL_RESET"\n");
+	printf("|       |\n");
+	printf("|       +- usable area (%ld bytes)\n", chunk_count * CHUNK_SIZE - AREA_INFO_SIZE);
+	printf("+- area info (%ld bytes)\n", AREA_INFO_SIZE);
 }
 
 void memdump() {
-	const char* col_used = "\033[40m";
-	const char* col_free = "\033[107m";
-	const char* col_reset = "\033[0m";
-
 	printf("---memalloc dump---\n");
 	printf("size of:\n");
 	printf("   heap: %d bytes\n", MEM_SIZE);
@@ -111,13 +129,13 @@ void memdump() {
 	printf("chunks:\n");
 	printf(" used: %ld (%ld bytes)\n", total_used_chunks, total_used_chunks * CHUNK_SIZE);
 	printf(" free: %ld (%ld bytes)\n\n", total_free_chunks, total_free_chunks * CHUNK_SIZE);
-	printf("memory overview: %s %s used; %s %s free\n", COL_USED, COL_RESET, COL_FREE, COL_RESET);
+	printf("memory overview: "COL_USED" "COL_RESET" used; "COL_FREE" "COL_RESET" free\n");
 	printf("chunk");
 	for(size_t i = 0; i < MAP_SIZE * MAP_TYPE_SIZE; i++) {
 		if(i % MAP_TYPE_SIZE == 0)
 			printf("\n%ld\t", i);
 		int set = get_bit(i);
-		printf("%s %s", set ? COL_USED : COL_FREE, COL_RESET);
+		printf("%s "COL_RESET, set ? COL_USED : COL_FREE);
 	}
 	printf("\n");
 }
