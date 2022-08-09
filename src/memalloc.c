@@ -11,6 +11,10 @@
 #define CHUNK_COUNT MEM_SIZE / CHUNK_SIZE
 #define MAP_SIZE MEM_SIZE / CHUNK_SIZE / MAP_TYPE_SIZE
 
+#define COL_RESET "\033[0m"
+#define COL_USED "\033[40m"
+#define COL_FREE "\033[107m"
+
 uint8_t memory[MEM_SIZE];
 MAP_TYPE memmap[MAP_SIZE];
 size_t sizemap[CHUNK_COUNT];
@@ -107,13 +111,13 @@ void memdump() {
 	printf("chunks:\n");
 	printf(" used: %ld (%ld bytes)\n", total_used_chunks, total_used_chunks * CHUNK_SIZE);
 	printf(" free: %ld (%ld bytes)\n\n", total_free_chunks, total_free_chunks * CHUNK_SIZE);
-	printf("memory overview: %s %s used; %s %s free\n", col_used, col_reset, col_free, col_reset);
+	printf("memory overview: %s %s used; %s %s free\n", COL_USED, COL_RESET, COL_FREE, COL_RESET);
 	printf("chunk");
 	for(size_t i = 0; i < MAP_SIZE * MAP_TYPE_SIZE; i++) {
 		if(i % MAP_TYPE_SIZE == 0)
 			printf("\n%ld\t", i);
 		int set = get_bit(i);
-		printf("%s %s", set ? col_used : col_free, col_reset);
+		printf("%s %s", set ? COL_USED : COL_FREE, COL_RESET);
 	}
 	printf("\n");
 }
