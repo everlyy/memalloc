@@ -1,9 +1,12 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
 #include "memalloc.h"
 
 int main(void) {
+	struct timespec delay;
+	delay.tv_sec = 0;
+	delay.tv_nsec = 500000000;
+
 	srand(time(0));
 	while(1) {
 		void* ptrs[5];
@@ -17,7 +20,7 @@ int main(void) {
 		}
 		printf("\033[2J");
 		memdump();
-		usleep(500000);
+		nanosleep(&delay, NULL);
 		for(int i = 0; i < 5; i++) {
 			if(rand() % 2 == 0) {
 				memfree(ptrs[i]);
@@ -25,7 +28,7 @@ int main(void) {
 		}
 		printf("\033[2J");
 		memdump();
-		usleep(500000);
+		nanosleep(&delay, NULL);
 	}
 	return 0;
 } 
